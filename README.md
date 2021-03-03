@@ -212,12 +212,29 @@ _(Please contact us to add your work based on TFHE)_
 * Zama
 
 
+# Run custom playground:
 
+1. Build the library and install to system path (we could completely use our custom path, but for global use, just use default path):
 
+```
+cd src 
+cmake .
+make 
+make install
+```
 
+Run a script in which tfhe included:
 
+```
+run.sh playground.cpp
+```
 
+Please refer to playground.cpp for ways to use tfhe functions
 
+# Troubleshoot:
 
+1. Could not find shared library abc.so:
 
-
+```
+sudo /sbin/ldconfig -v
+```
