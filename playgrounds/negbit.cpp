@@ -11,7 +11,9 @@
 
 using namespace std;
 
-
+void print_sample(LweSample sample){
+    cout << sample.
+}
 int main(){
     // generate param and secret keys
     TFheGateBootstrappingParameterSet* parameneterSet = new_default_gate_bootstrapping_parameters(16);
@@ -27,9 +29,12 @@ int main(){
     
     LweSample* notSample = new_LweSample_array(1, in_out_param); // 1 bit
     bootsNOT(notSample, sample, &secretKeySet->cloud);
-
+    
     // decrypt
     int decrypted_bit = bootsSymDecrypt(notSample, secretKeySet);
     cout << "Decrypted bit:" << decrypted_bit << endl;
     cout << "Expected bit:" << !bit << endl;
+
+    delete_LweSample(sample);
+    delete_LweSample(notSample);
 }
