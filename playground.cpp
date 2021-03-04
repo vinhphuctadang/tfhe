@@ -1,6 +1,5 @@
 #include "tfhe/tfhe.h"
 #include <iostream>
-#include <stdio.h>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
@@ -11,21 +10,26 @@
 #include "tfhe/lweparams.h"
 
 using namespace std;
+
+
 int main(){
-    LweParams *params = new_LweParams(512, 0.2, 0.5); 
-    int32_t n = params->n;
-    LweKey *key = new_LweKey(params);
-    LweSample *cipher = new_LweSample(params);
-    Torus32 mu = dtot32(0.5);
-    // noise tolerance
-    double alpha = 0.0625;
-    Torus32 phi;
-    double message;
-    int32_t Msize = 2;
-    lweKeyGen(key);
-    lweSymEncrypt(cipher, mu, alpha, key);
-    cout << "a = [";
-    for (int32_t i = 0; i < n - 1; ++i) cout << t32tod(cipher->a[i]) << ", ";
-    cout << t32tod(cipher->a[n - 1]) << "]" << endl;
-    cout << "b = " << t32tod(cipher->b) << endl;
+    // generate param and secret keys
+    TFheGateBootstrappingParameterSet* parameneterSet = new_default_gate_bootstrapping_parameters(16);
+    const LweParams* in_out_param = parameneterSet->in_out_params;
+
+    // generate secret key based on paramenter set
+    TFheGateBootstrappingSecretKeySet* secretKeySet = new_random_gate_bootstrapping_secret_keyset(parameneterSet);
+
+    // encrypt the boolean '1'
+    int bit = 0;
+    LweSample* sample = new_LweSample_array(1, in_out_param); // 1 bit
+    bootsSymEncrypt(sample, bit, secretKeySet);
+    
+    LweSample* notSample = new_LweSample_array(1, in_out_param); // 1 bit
+    bootsNOT(notSample, sample, &secretKeySet->cloud);
+
+    // decrypt
+    int decrypted_bit = bootsSymDecrypt(notSample, secretKeySet);
+    cout << "Decrypted bit:" << decrypted_bit << endl;
+    cout << "Expected bit:" << !bit << endl;
 }
