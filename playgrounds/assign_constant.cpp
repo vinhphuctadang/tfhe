@@ -28,8 +28,14 @@ int main(){
     bootsCONSTANT(a+1, 0, &secretKeySet->cloud);
     bootsCONSTANT(a+2, 1, &secretKeySet->cloud);
 
+
+    // FILE* f = fopen("output.txt", "w");
+    // export_gate_bootstrapping_ciphertext_toFile(f, a, parameneterSet);
+    // fclose(f);
+
     for(int i = 0; i<bit_count; ++i) {
         cout << bootsSymDecrypt(a+i, secretKeySet);
         // expected '1010000000000000'
     }
+    delete_gate_bootstrapping_ciphertext_array(bit_count, a);
 }

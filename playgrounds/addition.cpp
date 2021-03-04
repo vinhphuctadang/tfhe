@@ -65,4 +65,7 @@ int main(){
         cout << decrypted_bit;
         // expected to see 01, which will be 2 in DEC
     }
+
+    delete_gate_bootstrapping_parameters(parameneterSet);
+    delete_gate_bootstrapping_secret_keyset(secretKeySet);
 }
