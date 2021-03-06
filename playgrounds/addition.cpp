@@ -15,7 +15,9 @@
 
 using namespace std;
 
-void full_adder(LweSample *sum, const LweSample *x, const LweSample *y, const int32_t nb_bits, const LweParams *in_out_params, LweSample *carry, const TFheGateBootstrappingCloudKeySet* cloud_key) {
+void full_adder(LweSample *sum, 
+    const LweSample *x, const LweSample *y, 
+    const int32_t nb_bits, const LweParams *in_out_params, LweSample *carry, const TFheGateBootstrappingCloudKeySet* cloud_key) {
     LweSample *temp = new_LweSample_array(3, in_out_params);
     for (int32_t i = 0; i < nb_bits; ++i) {
         //sumi = xi XOR yi XOR carry(i-1) 
