@@ -97,8 +97,13 @@ int main(){
             x = fromUInt32(20, keySet), 
             y = fromUInt32(37, keySet);
     FheUInt32 car = fromUInt32(0, keySet);
+
+    cout << "Start adding 2 encrypted number:" << endl;
+    auto marked = time(0);
     // computation takes place on cloud over encrypted data
     FheUInt32 result = add(x, y, &keySet->cloud, in_out_param, car);
     // client get result and decrypt
-    cout << toUInt32(result, keySet);
+    cout << toUInt32(x, keySet) << " + " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
+
+    cout << "Time ellapsed:" << time(0)-marked << " second(s)";
 }

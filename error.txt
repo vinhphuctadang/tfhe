@@ -1,0 +1,141 @@
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:11:
+In file included from /usr/local/include/tfhe/polynomials_arithmetic.h:5:
+/usr/local/include/tfhe/polynomials.h:17:42: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   IntPolynomial(const IntPolynomial&) = delete; //forbidden 
+                                         ^
+/usr/local/include/tfhe/polynomials.h:18:53: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   IntPolynomial* operator=(const IntPolynomial&) = delete; //forbidden
+                                                    ^
+/usr/local/include/tfhe/polynomials.h:31:46: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   TorusPolynomial(const TorusPolynomial&) = delete; //forbidden 
+                                             ^
+/usr/local/include/tfhe/polynomials.h:32:57: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   TorusPolynomial* operator=(const TorusPolynomial&) = delete; //forbidden
+                                                        ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:14:
+In file included from /usr/local/include/tfhe/lwe-functions.h:8:
+/usr/local/include/tfhe/lwekey.h:17:28: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   LweKey(const LweKey&) = delete; //forbidden 
+                           ^
+/usr/local/include/tfhe/lwekey.h:18:39: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   LweKey* operator=(const LweKey&) = delete; //forbidden
+                                      ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:14:
+In file included from /usr/local/include/tfhe/lwe-functions.h:9:
+/usr/local/include/tfhe/lweparams.h:25:32: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+        LweParams(const LweParams&) = delete; //forbidden
+                                      ^
+/usr/local/include/tfhe/lweparams.h:26:44: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+        LweParams& operator=(const LweParams& ) = delete; //forbidden
+                                                  ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:14:
+In file included from /usr/local/include/tfhe/lwe-functions.h:10:
+/usr/local/include/tfhe/lwesamples.h:17:32: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   LweSample(const LweSample&)=delete;
+                               ^
+/usr/local/include/tfhe/lwesamples.h:18:43: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+   LweSample& operator=(const LweSample&)=delete;
+                                          ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:16:
+In file included from /usr/local/include/tfhe/tlwe_functions.h:6:
+/usr/local/include/tfhe/tlwe.h:23:38: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TLweParams(const TLweParams &) = delete;
+                                     ^
+/usr/local/include/tfhe/tlwe.h:25:42: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TLweParams &) = delete;
+                                         ^
+/usr/local/include/tfhe/tlwe.h:39:32: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TLweKey(const TLweKey &) = delete;
+                               ^
+/usr/local/include/tfhe/tlwe.h:41:39: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TLweKey &) = delete;
+                                      ^
+/usr/local/include/tfhe/tlwe.h:58:38: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TLweSample(const TLweSample &) = delete;
+                                     ^
+/usr/local/include/tfhe/tlwe.h:60:42: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TLweSample &) = delete;
+                                         ^
+/usr/local/include/tfhe/tlwe.h:76:44: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TLweSampleFFT(const TLweSampleFFT &) = delete;
+                                           ^
+/usr/local/include/tfhe/tlwe.h:78:45: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TLweSampleFFT &) = delete;
+                                            ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:18:
+In file included from /usr/local/include/tfhe/tgsw_functions.h:8:
+/usr/local/include/tfhe/tgsw.h:27:38: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TGswParams(const TGswParams &) = delete;
+                                     ^
+/usr/local/include/tfhe/tgsw.h:29:42: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TGswParams &) = delete;
+                                         ^
+/usr/local/include/tfhe/tgsw.h:47:32: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TGswKey(const TGswKey &) = delete;
+                               ^
+/usr/local/include/tfhe/tgsw.h:49:39: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TGswKey &) = delete;
+                                      ^
+/usr/local/include/tfhe/tgsw.h:71:38: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TGswSample(const TGswSample &) = delete;
+                                     ^
+/usr/local/include/tfhe/tgsw.h:73:42: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TGswSample &) = delete;
+                                         ^
+/usr/local/include/tfhe/tgsw.h:91:44: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TGswSampleFFT(const TGswSampleFFT &) = delete;
+                                           ^
+/usr/local/include/tfhe/tgsw.h:93:45: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TGswSampleFFT &) = delete;
+                                            ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:18:
+In file included from /usr/local/include/tfhe/tgsw_functions.h:10:
+/usr/local/include/tfhe/lwebootstrappingkey.h:27:55: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    LweBootstrappingKey(const LweBootstrappingKey&) = delete;
+                                                      ^
+/usr/local/include/tfhe/lwebootstrappingkey.h:28:50: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const LweBootstrappingKey&) = delete;
+                                                 ^
+/usr/local/include/tfhe/lwebootstrappingkey.h:53:61: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    LweBootstrappingKeyFFT(const LweBootstrappingKeyFFT&) = delete;
+                                                            ^
+/usr/local/include/tfhe/lwebootstrappingkey.h:54:53: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const LweBootstrappingKeyFFT&) = delete;
+                                                    ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:20:
+/usr/local/include/tfhe/lwekeyswitch.h:25:47: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    LweKeySwitchKey(const LweKeySwitchKey&) = delete;
+                                              ^
+/usr/local/include/tfhe/lwekeyswitch.h:26:46: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const LweKeySwitchKey&) = delete;
+                                             ^
+In file included from playground.cpp:1:
+In file included from /usr/local/include/tfhe/tfhe.h:24:
+In file included from /usr/local/include/tfhe/tfhe_gate_bootstrapping_functions.h:7:
+/usr/local/include/tfhe/tfhe_gate_bootstrapping_structures.h:19:84: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TFheGateBootstrappingParameterSet(const TFheGateBootstrappingParameterSet &) = delete;
+                                                                                   ^
+/usr/local/include/tfhe/tfhe_gate_bootstrapping_structures.h:21:64: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TFheGateBootstrappingParameterSet &)= delete;
+                                                               ^
+/usr/local/include/tfhe/tfhe_gate_bootstrapping_structures.h:37:82: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TFheGateBootstrappingCloudKeySet(const TFheGateBootstrappingCloudKeySet &) = delete;
+                                                                                 ^
+/usr/local/include/tfhe/tfhe_gate_bootstrapping_structures.h:39:63: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TFheGateBootstrappingCloudKeySet &)= delete;
+                                                              ^
+/usr/local/include/tfhe/tfhe_gate_bootstrapping_structures.h:58:84: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    TFheGateBootstrappingSecretKeySet(const TFheGateBootstrappingSecretKeySet &) = delete;
+                                                                                   ^
+/usr/local/include/tfhe/tfhe_gate_bootstrapping_structures.h:60:64: warning: deleted function definitions are a C++11 extension [-Wc++11-extensions]
+    void operator=(const TFheGateBootstrappingSecretKeySet &)= delete;
+                                                               ^
+38 warnings generated.
