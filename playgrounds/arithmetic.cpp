@@ -70,17 +70,12 @@ FheUInt32 add(
     LweSample *x = a.sample, *y = b.sample;
 
     for (int32_t i = 0; i < nb_bits; ++i) {
-        //sumi = xi XOR yi XOR carry(i-1) 
         bootsXOR(temp, x + i, y + i, cloud_key); // temp = xi XOR yi
-        bootsXOR(sum + i, temp, carry, cloud_key);
-
-        // carry = (xi AND yi) XOR (carry(i-1) AND (xi XOR yi))
         bootsAND(temp + 1, x + i, y + i, cloud_key); // temp1 = xi AND yi
-        bootsAND(temp + 2, carry, temp, cloud_key); // temp2 = carry AND temp
-        bootsXOR(carry + 1, temp + 1, temp + 2, cloud_key);
-        bootsCOPY(carry, carry + 1, cloud_key);
+        bootsXOR(sum + i, temp, carry, cloud_key); // sum = temp XOR carry = (xi XOR yi) XOR carry
+        bootsAND(carry, temp, carry, cloud_key); // carry = (xi XOR yi) and carry
+        bootsOR(carry, carry, temp + 1, cloud_key); // carry = (((xi XOR yi) and carry) or (xi AND yi))
     }
-    // bootsCOPY(sum + nb_bits, carry, cloud_key);
 
     delete_LweSample_array(3, temp);
     return result;
@@ -133,32 +128,37 @@ FheUInt32 sub(
 // }
 FheUInt32 mul(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
-    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car){
-    const int nb_bits = 32;
+    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car, TFheGateBootstrappingSecretKeySet *sk){
+    const int nb_bits = 4;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
-    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
+    LweSample *carry = new_LweSample_array(2, in_out_params);
     LweSample *temp = new_LweSample_array(3, in_out_params);
     LweSample *sum = result.sample;
     LweSample *x = a.sample, *y = b.sample;
-
+    
     // use binary shifting stragegy
     for (int32_t j = 0; j < nb_bits; ++j) { // iterate over B
-        bootsCONSTANT(carry, 0, cloud_key);
+        bootsCOPY(carry, car.sample, cloud_key);
+        cout << "Carry bit:" <<  bootsSymDecrypt(carry, sk) << endl;
         for (int32_t i = 0; i < nb_bits; ++i) { // iterate over A
             LweSample *Xi = x+i;
             LweSample *Yj = y+j;
-            if (j+i > 31) break;
+            if (j+i > 3) break;
             // x[i] * y[j]
             bootsAND(temp, Xi, Yj, cloud_key);
             LweSample *c = sum+(j+i);
-            // Add to sum[j+i] and Carry
-            bootsXOR(temp, Xi, Yj, cloud_key); // temp = a xor b
-            bootsXOR(c, temp, carry, cloud_key); // c = temp xor carry 
-            bootsAND(temp, temp, carry, cloud_key); // temp = (a xor b) and carry
-            bootsAND(carry, Xi, Yj, cloud_key); // carry = a and b
-            bootsAND(carry, carry, temp, cloud_key); // carry = (a and b) and ((a xor b) and carry)
+            cout << "     mul 2 bit result:" << bootsSymDecrypt(temp, sk) << endl;
+            // sum[j+i] = sum[j+i] + temp + carry
+            bootsXOR(temp + 1, c, temp, cloud_key);
+            bootsAND(temp + 2, c, temp, cloud_key); 
+            bootsXOR(c, temp + 1, carry, cloud_key);
+            bootsAND(carry, temp + 1, carry, cloud_key); 
+            bootsOR(carry, carry, temp + 2, cloud_key);
+            cout << "     sum at c:" << bootsSymDecrypt(c, sk) << ", carry=" << bootsSymDecrypt(carry, sk) << endl;
+            cout << "  Carry bit inner loop:" <<  bootsSymDecrypt(carry, sk) << endl;
         }
+        cout << "Current sum: " << toUInt32(result, sk) << endl;
         // dont need to consider "redudant" bit
     }
     delete_LweSample_array(3, temp);
@@ -174,14 +174,14 @@ int main(){
     // cout << in_out_param->n;
     // client decrypt data with its own key
     FheUInt32 
-            x = fromUInt32(37, keySet), 
-            y = fromUInt32(20, keySet);
+            x = fromUInt32(4, keySet), 
+            y = fromUInt32(2, keySet);
     FheUInt32 car = fromUInt32(0, keySet);
 
     cout << "Start mul 2 encrypted number:" << endl;
     auto marked = time(0);
     // computation takes place on cloud over encrypted data
-    FheUInt32 result = mul(x, y, &keySet->cloud, car);
+    FheUInt32 result = mul(x, y, &keySet->cloud, car, keySet);
     // client get result and decrypt
     cout << toUInt32(x, keySet) << " * " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
 
