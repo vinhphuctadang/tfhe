@@ -115,6 +115,57 @@ FheUInt32 sub(
     return result;
 }
 
+// void full_adder_circuit(LweSample* a, LweSample *b, LweSample *carry, LweSample *sum, const TFheGateBootstrappingCloudKeySet *cloud_key) {
+//     const LweParams *in_out_params = cloud_key->params->in_out_params;
+//     const LweSample *temp = new_LweSample_array(3, in_out_params);
+//     // a xor b => temp, 
+//     //            temp xor carry => sum
+//     //            temp and carry => first_carry
+//     // a and b => second_carry
+//     // carry = first_carry or second_carry
+//     bootsXOR(temp, a, b, cloud_key);
+//     bootsXOR(sum, temp, carry, cloud_key);
+//     bootsAND(temp+1, temp, carry, cloud_key);
+//     bootsAND(carry, a, b, cloud_key);
+//     bootsAND(carry, carry, temp+1, cloud_key);
+
+//     delete_LweSample_array(2, temp);
+// }
+FheUInt32 mul(
+    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car){
+    const int nb_bits = 32;
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
+    FheUInt32 result(in_out_params);
+    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
+    LweSample *temp = new_LweSample_array(3, in_out_params);
+    LweSample *sum = result.sample;
+    LweSample *x = a.sample, *y = b.sample;
+
+    // use binary shifting stragegy
+    for (int32_t j = 0; j < nb_bits; ++j) { // iterate over B
+        bootsCONSTANT(carry, 0, cloud_key);
+        for (int32_t i = 0; i < nb_bits; ++i) { // iterate over A
+            LweSample *Xi = x+i;
+            LweSample *Yj = y+j;
+            if (j+i > 31) break;
+            // x[i] * y[j]
+            bootsAND(temp, Xi, Yj, cloud_key);
+            LweSample *c = sum+(j+i);
+            // Add to sum[j+i] and Carry
+            bootsXOR(temp, Xi, Yj, cloud_key); // temp = a xor b
+            bootsXOR(c, temp, carry, cloud_key); // c = temp xor carry 
+            bootsAND(temp, temp, carry, cloud_key); // temp = (a xor b) and carry
+            bootsAND(carry, Xi, Yj, cloud_key); // carry = a and b
+            bootsAND(carry, carry, temp, cloud_key); // carry = (a and b) and ((a xor b) and carry)
+        }
+        // dont need to consider "redudant" bit
+    }
+    delete_LweSample_array(3, temp);
+    return result;
+}
+
+
 int main(){
 
     TFheGateBootstrappingParameterSet *parameneterSet = new_default_gate_bootstrapping_parameters(16);
@@ -127,12 +178,12 @@ int main(){
             y = fromUInt32(20, keySet);
     FheUInt32 car = fromUInt32(0, keySet);
 
-    cout << "Start subtract 2 encrypted number:" << endl;
+    cout << "Start mul 2 encrypted number:" << endl;
     auto marked = time(0);
     // computation takes place on cloud over encrypted data
-    FheUInt32 result = sub(x, y, &keySet->cloud, car);
+    FheUInt32 result = mul(x, y, &keySet->cloud, car);
     // client get result and decrypt
-    cout << toUInt32(x, keySet) << " - " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
+    cout << toUInt32(x, keySet) << " * " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
 
     cout << "Time ellapsed:" << time(0)-marked << " second(s)";
 }
