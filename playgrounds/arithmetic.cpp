@@ -1,5 +1,5 @@
 #include "tfhe/tfhe.h"
-#include <iostream>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
@@ -59,8 +59,9 @@ unsigned int toUInt32(FheUInt32 &x, TFheGateBootstrappingSecretKeySet* secretKey
 
 FheUInt32 add(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
-    const TFheGateBootstrappingCloudKeySet *cloud_key, const LweParams *in_out_params, const FheUInt32 &car){
+    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car){
     const int nb_bits = 32;
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
     LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
     LweSample *temp = new_LweSample_array(3, in_out_params);
@@ -82,7 +83,35 @@ FheUInt32 add(
     // bootsCOPY(sum + nb_bits, carry, cloud_key);
 
     delete_LweSample_array(3, temp);
-    delete_LweSample_array(2, carry);
+    return result;
+}
+
+FheUInt32 sub(
+    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car){
+    const int nb_bits = 32;
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
+    FheUInt32 result(in_out_params);
+    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
+    LweSample *temp = new_LweSample_array(3, in_out_params);
+
+    LweSample *sum = result.sample;
+    LweSample *x = a.sample, *y = b.sample;
+
+    for (int32_t i = 0; i < nb_bits; ++i) {
+        //sumi = xi XOR yi XOR carry
+        bootsXOR(temp, x + i, y + i, cloud_key); // temp = xi XOR yi
+        bootsXOR(sum + i, temp, carry, cloud_key);
+        // carry = (xi AND yi) XOR (carry(i-1) AND (xi XOR yi))
+        // = (!A & carry) | (!A & B) | (B & carry)
+        bootsNOT(temp, x + i, cloud_key); // !A
+        bootsAND(temp + 1, temp, carry, cloud_key); // !A & carry
+        bootsAND(temp + 2, temp, y + i, cloud_key); // !A & B
+        bootsOR(temp, temp + 1, temp + 2, cloud_key); // (!A & carry) | (!A & B)
+        bootsAND(temp + 1, y + i, carry, cloud_key); // (B & carry)
+        bootsOR(carry, temp, temp + 1, cloud_key); // (!A & carry) | (!A & B) | (B & carry)
+    }
+    delete_LweSample_array(3, temp);
     return result;
 }
 
@@ -94,16 +123,16 @@ int main(){
     // cout << in_out_param->n;
     // client decrypt data with its own key
     FheUInt32 
-            x = fromUInt32(20, keySet), 
-            y = fromUInt32(37, keySet);
+            x = fromUInt32(37, keySet), 
+            y = fromUInt32(20, keySet);
     FheUInt32 car = fromUInt32(0, keySet);
 
-    cout << "Start adding 2 encrypted number:" << endl;
+    cout << "Start subtract 2 encrypted number:" << endl;
     auto marked = time(0);
     // computation takes place on cloud over encrypted data
-    FheUInt32 result = add(x, y, &keySet->cloud, in_out_param, car);
+    FheUInt32 result = sub(x, y, &keySet->cloud, car);
     // client get result and decrypt
-    cout << toUInt32(x, keySet) << " + " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
+    cout << toUInt32(x, keySet) << " - " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
 
     cout << "Time ellapsed:" << time(0)-marked << " second(s)";
 }
