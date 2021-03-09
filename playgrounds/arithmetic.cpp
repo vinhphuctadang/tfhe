@@ -64,7 +64,7 @@ FheUInt32 add(
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
     LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
-    LweSample *temp = new_LweSample_array(3, in_out_params);
+    LweSample *temp = new_LweSample_array(2, in_out_params);
 
     LweSample *sum = result.sample;
     LweSample *x = a.sample, *y = b.sample;
@@ -110,37 +110,22 @@ FheUInt32 sub(
     return result;
 }
 
-// void full_adder_circuit(LweSample* a, LweSample *b, LweSample *carry, LweSample *sum, const TFheGateBootstrappingCloudKeySet *cloud_key) {
-//     const LweParams *in_out_params = cloud_key->params->in_out_params;
-//     const LweSample *temp = new_LweSample_array(3, in_out_params);
-//     // a xor b => temp, 
-//     //            temp xor carry => sum
-//     //            temp and carry => first_carry
-//     // a and b => second_carry
-//     // carry = first_carry or second_carry
-//     bootsXOR(temp, a, b, cloud_key);
-//     bootsXOR(sum, temp, carry, cloud_key);
-//     bootsAND(temp+1, temp, carry, cloud_key);
-//     bootsAND(carry, a, b, cloud_key);
-//     bootsAND(carry, carry, temp+1, cloud_key);
-
-//     delete_LweSample_array(2, temp);
-// }
 FheUInt32 mul(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car, TFheGateBootstrappingSecretKeySet *sk){
     const int nb_bits = 4;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
-    LweSample *carry = new_LweSample_array(2, in_out_params);
+    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
     LweSample *temp = new_LweSample_array(3, in_out_params);
     LweSample *sum = result.sample;
     LweSample *x = a.sample, *y = b.sample;
-    
+    for (int32_t j = 0; j < nb_bits; ++j) { // iterate over B
+        bootsCONSTANT(sum + j, 0, cloud_key);
+    }
     // use binary shifting stragegy
     for (int32_t j = 0; j < nb_bits; ++j) { // iterate over B
         bootsCOPY(carry, car.sample, cloud_key);
-        cout << "Carry bit:" <<  bootsSymDecrypt(carry, sk) << endl;
         for (int32_t i = 0; i < nb_bits; ++i) { // iterate over A
             LweSample *Xi = x+i;
             LweSample *Yj = y+j;
@@ -148,17 +133,13 @@ FheUInt32 mul(
             // x[i] * y[j]
             bootsAND(temp, Xi, Yj, cloud_key);
             LweSample *c = sum+(j+i);
-            cout << "     mul 2 bit result:" << bootsSymDecrypt(temp, sk) << endl;
             // sum[j+i] = sum[j+i] + temp + carry
             bootsXOR(temp + 1, c, temp, cloud_key);
-            bootsAND(temp + 2, c, temp, cloud_key); 
+            bootsAND(temp + 2, c, temp, cloud_key);
             bootsXOR(c, temp + 1, carry, cloud_key);
             bootsAND(carry, temp + 1, carry, cloud_key); 
             bootsOR(carry, carry, temp + 2, cloud_key);
-            cout << "     sum at c:" << bootsSymDecrypt(c, sk) << ", carry=" << bootsSymDecrypt(carry, sk) << endl;
-            cout << "  Carry bit inner loop:" <<  bootsSymDecrypt(carry, sk) << endl;
         }
-        cout << "Current sum: " << toUInt32(result, sk) << endl;
         // dont need to consider "redudant" bit
     }
     delete_LweSample_array(3, temp);
