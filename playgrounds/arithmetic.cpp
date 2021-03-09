@@ -59,13 +59,14 @@ unsigned int toUInt32(FheUInt32 &x, TFheGateBootstrappingSecretKeySet* secretKey
 
 FheUInt32 add(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
-    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car){
+    const TFheGateBootstrappingCloudKeySet *cloud_key){
     const int nb_bits = 32;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
-    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
-    LweSample *temp = new_LweSample_array(2, in_out_params);
+    LweSample *carry = new_LweSample(in_out_params);
+    bootsCONSTANT(carry, 0, cloud_key);
 
+    LweSample *temp = new_LweSample_array(2, in_out_params);
     LweSample *sum = result.sample;
     LweSample *x = a.sample, *y = b.sample;
 
@@ -83,11 +84,14 @@ FheUInt32 add(
 
 FheUInt32 sub(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
-    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car){
+    const TFheGateBootstrappingCloudKeySet *cloud_key){
     const int nb_bits = 32;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
-    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
+
+    LweSample *carry = new_LweSample(in_out_params);
+    bootsCONSTANT(carry, 0, cloud_key);
+
     LweSample *temp = new_LweSample_array(3, in_out_params);
 
     LweSample *sum = result.sample;
@@ -100,11 +104,11 @@ FheUInt32 sub(
         // carry = (xi AND yi) XOR (carry(i-1) AND (xi XOR yi))
         // = (!A & carry) | (!A & B) | (B & carry)
         bootsNOT(temp, x + i, cloud_key); // !A
-        bootsAND(temp + 1, temp, carry, cloud_key); // !A & carry
-        bootsAND(temp + 2, temp, y + i, cloud_key); // !A & B
+        bootsAND(temp + 1, temp, carry, cloud_key);     // !A & carry
+        bootsAND(temp + 2, temp, y + i, cloud_key);    // !A & B
         bootsOR(temp, temp + 1, temp + 2, cloud_key); // (!A & carry) | (!A & B)
         bootsAND(temp + 1, y + i, carry, cloud_key); // (B & carry)
-        bootsOR(carry, temp, temp + 1, cloud_key); // (!A & carry) | (!A & B) | (B & carry)
+        bootsOR(carry, temp, temp + 1, cloud_key);  // (!A & carry) | (!A & B) | (B & carry)
     }
     delete_LweSample_array(3, temp);
     return result;
@@ -112,11 +116,12 @@ FheUInt32 sub(
 
 FheUInt32 mul(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
-    const TFheGateBootstrappingCloudKeySet *cloud_key, const FheUInt32 &car, TFheGateBootstrappingSecretKeySet *sk){
-    const int nb_bits = 4;
+    const TFheGateBootstrappingCloudKeySet *cloud_key, TFheGateBootstrappingSecretKeySet *sk){
+    const int nb_bits = 32;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
-    LweSample *carry = car.sample; // new_LweSample_array(2, in_out_params);
+    LweSample *carry = new_LweSample(in_out_params);
+
     LweSample *temp = new_LweSample_array(3, in_out_params);
     LweSample *sum = result.sample;
     LweSample *x = a.sample, *y = b.sample;
@@ -125,7 +130,7 @@ FheUInt32 mul(
     }
     // use binary shifting stragegy
     for (int32_t j = 0; j < nb_bits; ++j) { // iterate over B
-        bootsCOPY(carry, car.sample, cloud_key);
+        bootsCONSTANT(carry, 0, cloud_key);
         for (int32_t i = 0; i < nb_bits; ++i) { // iterate over A
             LweSample *Xi = x+i;
             LweSample *Yj = y+j;
@@ -157,14 +162,12 @@ int main(){
     FheUInt32 
             x = fromUInt32(4, keySet), 
             y = fromUInt32(2, keySet);
-    FheUInt32 car = fromUInt32(0, keySet);
-
     cout << "Start mul 2 encrypted number:" << endl;
     auto marked = time(0);
     // computation takes place on cloud over encrypted data
-    FheUInt32 result = mul(x, y, &keySet->cloud, car, keySet);
+    FheUInt32 result = add(x, y, &keySet->cloud);
     // client get result and decrypt
-    cout << toUInt32(x, keySet) << " * " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
+    cout << toUInt32(x, keySet) << " + " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
 
     cout << "Time ellapsed:" << time(0)-marked << " second(s)";
 }
