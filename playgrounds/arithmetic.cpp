@@ -23,20 +23,19 @@ struct FheUInt32 {
         this->sample = new_LweSample_array(32, params); // 32 bit
     }
 
-    FheUInt32(const FheUInt32 &x) {
+    FheUInt32(const FheUInt32 &x) { // only allow copying from the same params
         // deep clone 
-        // cloning this type for future change
-        // const int32_t n;
-        // const double alpha_min;//le plus petit bruit tq sur
-        // const double alpha_max;
         this->params = x.params; // where param is CONSTANTLY READ-ONLY
         for(int i = 0; i<32; ++i) {
-            memcpy(&this->sample[i], x.sample + i, sizeof(Torus32) * x.params->n);
+            lweCopy(this->sample + i, x.sample + i, this->params);
         }
     }
     ~FheUInt32() {
+        // cout << "DEALLOCATE PERFORMED TO " << this->sample << endl;
         delete_LweSample_array(32, this->sample);
     }
+
+    FheUInt32& operator=(const FheUInt32 &x)=delete;
 };
 
 FheUInt32 fromUInt32(unsigned int x, TFheGateBootstrappingSecretKeySet* secretKeySet){
@@ -114,10 +113,11 @@ FheUInt32 sub(
     return result;
 }
 
+
 FheUInt32 mul(
     FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
-    const TFheGateBootstrappingCloudKeySet *cloud_key, TFheGateBootstrappingSecretKeySet *sk){
-    const int nb_bits = 32;
+    const TFheGateBootstrappingCloudKeySet *cloud_key){
+    const int nb_bits = 8;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
     FheUInt32 result(in_out_params);
     LweSample *carry = new_LweSample(in_out_params);
@@ -134,7 +134,7 @@ FheUInt32 mul(
         for (int32_t i = 0; i < nb_bits; ++i) { // iterate over A
             LweSample *Xi = x+i;
             LweSample *Yj = y+j;
-            if (j+i > 3) break;
+            if (j+i >= nb_bits) break;
             // x[i] * y[j]
             bootsAND(temp, Xi, Yj, cloud_key);
             LweSample *c = sum+(j+i);
@@ -148,26 +148,135 @@ FheUInt32 mul(
         // dont need to consider "redudant" bit
     }
     delete_LweSample_array(3, temp);
+    delete_LweSample(carry);
     return result;
 }
 
+FheUInt32 sub_out_carry(
+    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+    const TFheGateBootstrappingCloudKeySet *cloud_key, LweSample* carry){ 
+    const int nb_bits = 32;
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
+    FheUInt32 result(in_out_params);
+
+    // LweSample *carry = new_LweSample(in_out_params);
+    bootsCONSTANT(carry, 0, cloud_key);
+    LweSample *temp = new_LweSample_array(3, in_out_params);
+    LweSample *sum = result.sample;
+    LweSample *x = a.sample, *y = b.sample;
+
+    for (int32_t i = 0; i < nb_bits; ++i) {
+        //sumi = xi XOR yi XOR carry
+        bootsXOR(temp, x + i, y + i, cloud_key); // temp = xi XOR yi
+        bootsXOR(sum + i, temp, carry, cloud_key);
+        // carry = (xi AND yi) XOR (carry(i-1) AND (xi XOR yi))
+        // = (!A & carry) | (!A & B) | (B & carry)
+        bootsNOT(temp, x + i, cloud_key); // !A
+        bootsAND(temp + 1, temp, carry, cloud_key);     // !A & carry
+        bootsAND(temp + 2, temp, y + i, cloud_key);    // !A & B
+        bootsOR(temp, temp + 1, temp + 2, cloud_key); // (!A & carry) | (!A & B)
+        bootsAND(temp + 1, y + i, carry, cloud_key); // (B & carry)
+        bootsOR(carry, temp, temp + 1, cloud_key);  // (!A & carry) | (!A & B) | (B & carry)
+    }
+    delete_LweSample_array(3, temp);
+
+    return result;
+}
+
+void shift_left_abit(FheUInt32 &a, const TFheGateBootstrappingCloudKeySet *cloud_key){
+    for(int i = 30; i>=0; --i) {
+        // copy memory only
+        bootsCOPY(a.sample + (i + 1), a.sample + i, cloud_key);
+    }
+    bootsCONSTANT(a.sample, 0, cloud_key);
+}
+
+FheUInt32 div(
+    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+    const TFheGateBootstrappingCloudKeySet *cloud_key){
+    const int nb_bits = 32;
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
+
+    FheUInt32 result(in_out_params), remainder(in_out_params);
+    LweSample *carry = new_LweSample(in_out_params), *not_carry = new_LweSample(in_out_params);
+
+    // x = yq + r
+    LweSample *q = result.sample;
+    LweSample *r = remainder.sample;
+    LweSample *x = a.sample, *y = b.sample;
+
+    for (int32_t j = 0; j < nb_bits; ++j) { 
+        bootsCONSTANT(r + j, 0, cloud_key);
+    }
+
+    // use binary shifting stragegy
+    for (int32_t i = nb_bits-1; i >= 0; --i) { 
+        shift_left_abit(remainder, cloud_key);
+        bootsCOPY(remainder.sample, x + i, cloud_key);
+        FheUInt32 temp = sub_out_carry(remainder, b, cloud_key, carry);
+        shift_left_abit(result, cloud_key);
+        bootsNOT(not_carry, carry, cloud_key);
+        bootsCOPY(result.sample, not_carry, cloud_key);
+        // reassign if carry is 0
+        for(int32_t i = nb_bits-1; i >= 0; --i) {
+            bootsMUX(remainder.sample + i, carry, remainder.sample + i, temp.sample + i, cloud_key);
+        }
+    }
+    delete_LweSample(carry);
+    delete_LweSample(not_carry);
+    return result;
+}
+
+FheUInt32 mod(
+    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+    const TFheGateBootstrappingCloudKeySet *cloud_key){
+    const int nb_bits = 32;
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
+
+    FheUInt32 result(in_out_params), remainder(in_out_params);
+    LweSample *carry = new_LweSample(in_out_params), *not_carry = new_LweSample(in_out_params);
+
+    // x = yq + r
+    LweSample *q = result.sample;
+    LweSample *r = remainder.sample;
+    LweSample *x = a.sample, *y = b.sample;
+
+    for (int32_t j = 0; j < nb_bits; ++j) { 
+        bootsCONSTANT(r + j, 0, cloud_key);
+    }
+
+    // use binary shifting stragegy
+    for (int32_t i = nb_bits-1; i >= 0; --i) { 
+        shift_left_abit(remainder, cloud_key);
+        bootsCOPY(remainder.sample, x + i, cloud_key);
+        FheUInt32 temp = sub_out_carry(remainder, b, cloud_key, carry);
+        shift_left_abit(result, cloud_key);
+        bootsNOT(not_carry, carry, cloud_key);
+        bootsCOPY(result.sample, not_carry, cloud_key);
+        // reassign if carry is 0
+        for(int32_t i = nb_bits-1; i >= 0; --i) {
+            bootsMUX(remainder.sample + i, carry, remainder.sample + i, temp.sample + i, cloud_key);
+        }
+    }
+    delete_LweSample(carry);
+    delete_LweSample(not_carry);
+    return remainder;
+}
 
 int main(){
-
     TFheGateBootstrappingParameterSet *parameneterSet = new_default_gate_bootstrapping_parameters(16);
     const LweParams* in_out_param = parameneterSet->in_out_params;
     TFheGateBootstrappingSecretKeySet *keySet = new_random_gate_bootstrapping_secret_keyset(parameneterSet);
     // cout << in_out_param->n;
     // client decrypt data with its own key
     FheUInt32 
-            x = fromUInt32(4, keySet), 
-            y = fromUInt32(2, keySet);
-    cout << "Start mul 2 encrypted number:" << endl;
+            x = fromUInt32(7, keySet), 
+            y = fromUInt32(3, keySet);
+    // cout << "Start mul 2 encrypted number:" << endl;
     auto marked = time(0);
-    // computation takes place on cloud over encrypted data
-    FheUInt32 result = add(x, y, &keySet->cloud);
-    // client get result and decrypt
-    cout << toUInt32(x, keySet) << " + " << toUInt32(y, keySet) << " = " << toUInt32(result, keySet) << endl;
-
+    // FheUInt32 x(in_out_param), y(in_out_param);
+    cout << "Start division" << endl;
+    auto z = mod(x, y, &keySet->cloud);
+    cout << toUInt32(z, keySet) << endl;
     cout << "Time ellapsed:" << time(0)-marked << " second(s)";
 }
