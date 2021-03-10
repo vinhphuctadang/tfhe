@@ -14,54 +14,62 @@
 #include "tfhe/tgsw.h"
 using namespace std;
 
-// define 32 bit integer number manipulation
-struct FheUInt32 {
+const int NB_BITS = 8;
+
+// define n bit integer number manipulation
+struct FheUInt {
     LweSample *sample;
     const LweParams *params;
-    FheUInt32(const LweParams *params){
-        this->params = params; // where param is CONSTANTLY READ-ONLY
-        this->sample = new_LweSample_array(32, params); // 32 bit
+    FheUInt(const LweParams *params){
+        this->params = params; // param is READ-ONLY
+        this->sample = new_LweSample_array(NB_BITS, params); // NB_BITS bit
     }
 
-    FheUInt32(const FheUInt32 &x) { // only allow copying from the same params
+    FheUInt(const FheUInt &x) { // only allow copying from the same params
         // deep clone 
-        this->params = x.params; // where param is CONSTANTLY READ-ONLY
-        for(int i = 0; i<32; ++i) {
+        this->params = x.params; // param is READ-ONLY
+        for(int i = 0; i<NB_BITS; ++i) {
             lweCopy(this->sample + i, x.sample + i, this->params);
         }
     }
-    ~FheUInt32() {
-        // cout << "DEALLOCATE PERFORMED TO " << this->sample << endl;
-        delete_LweSample_array(32, this->sample);
+    ~FheUInt() {
+        delete_LweSample_array(NB_BITS, this->sample);
     }
 
-    FheUInt32& operator=(const FheUInt32 &x)=delete;
+    FheUInt& operator=(const FheUInt &x) {
+        // deep clone 
+        this->params = x.params; // param is READ-ONLY
+        for(int i = 0; i<NB_BITS; ++i) {
+            lweCopy(this->sample + i, x.sample + i, this->params);
+        }
+        return *this;
+    }
 };
 
-FheUInt32 fromUInt32(unsigned int x, TFheGateBootstrappingSecretKeySet* secretKeySet){
-    FheUInt32 result(secretKeySet->params->in_out_params);
-    for(int i = 0; i<32; ++i) {
+FheUInt fromUInt(unsigned int x, TFheGateBootstrappingSecretKeySet* secretKeySet){
+    FheUInt result(secretKeySet->params->in_out_params);
+    for(int i = 0; i<NB_BITS; ++i) {
         bootsSymEncrypt(result.sample+i, x & 1, secretKeySet);
         x >>= 1;
     }
     return result;
 }
 
-unsigned int toUInt32(FheUInt32 &x, TFheGateBootstrappingSecretKeySet* secretKeySet) {
+unsigned int toUInt(FheUInt &x, TFheGateBootstrappingSecretKeySet* secretKeySet) {
     unsigned int result = 0;
-    for(int i = 31; i>=0; --i) {
+    for(int i = NB_BITS-1; i>=0; --i) {
         int u = bootsSymDecrypt(x.sample+i, secretKeySet);
         result = 2*result + u;
     }
     return result;
 }
 
-FheUInt32 add(
-    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+FheUInt add(
+    FheUInt &a, FheUInt &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key){
-    const int nb_bits = 32;
+    const int nb_bits = NB_BITS;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
-    FheUInt32 result(in_out_params);
+    FheUInt result(in_out_params);
     LweSample *carry = new_LweSample(in_out_params);
     bootsCONSTANT(carry, 0, cloud_key);
 
@@ -81,12 +89,12 @@ FheUInt32 add(
     return result;
 }
 
-FheUInt32 sub(
-    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+FheUInt sub(
+    FheUInt &a, FheUInt &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key){
-    const int nb_bits = 32;
+    const int nb_bits = NB_BITS;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
-    FheUInt32 result(in_out_params);
+    FheUInt result(in_out_params);
 
     LweSample *carry = new_LweSample(in_out_params);
     bootsCONSTANT(carry, 0, cloud_key);
@@ -114,12 +122,12 @@ FheUInt32 sub(
 }
 
 
-FheUInt32 mul(
-    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+FheUInt mul(
+    FheUInt &a, FheUInt &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key){
     const int nb_bits = 8;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
-    FheUInt32 result(in_out_params);
+    FheUInt result(in_out_params);
     LweSample *carry = new_LweSample(in_out_params);
 
     LweSample *temp = new_LweSample_array(3, in_out_params);
@@ -152,12 +160,12 @@ FheUInt32 mul(
     return result;
 }
 
-FheUInt32 sub_out_carry(
-    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+FheUInt sub_out_carry(
+    FheUInt &a, FheUInt &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key, LweSample* carry){ 
-    const int nb_bits = 32;
+    const int nb_bits = NB_BITS;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
-    FheUInt32 result(in_out_params);
+    FheUInt result(in_out_params);
 
     // LweSample *carry = new_LweSample(in_out_params);
     bootsCONSTANT(carry, 0, cloud_key);
@@ -183,21 +191,21 @@ FheUInt32 sub_out_carry(
     return result;
 }
 
-void shift_left_abit(FheUInt32 &a, const TFheGateBootstrappingCloudKeySet *cloud_key){
-    for(int i = 30; i>=0; --i) {
+void shift_left_abit(FheUInt &a, const TFheGateBootstrappingCloudKeySet *cloud_key){
+    for(int i = NB_BITS-2; i>=0; --i) {
         // copy memory only
         bootsCOPY(a.sample + (i + 1), a.sample + i, cloud_key);
     }
     bootsCONSTANT(a.sample, 0, cloud_key);
 }
 
-FheUInt32 div(
-    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+FheUInt div(
+    FheUInt &a, FheUInt &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key){
-    const int nb_bits = 32;
+    const int nb_bits = NB_BITS;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
 
-    FheUInt32 result(in_out_params), remainder(in_out_params);
+    FheUInt result(in_out_params), remainder(in_out_params);
     LweSample *carry = new_LweSample(in_out_params), *not_carry = new_LweSample(in_out_params);
 
     // x = yq + r
@@ -213,7 +221,7 @@ FheUInt32 div(
     for (int32_t i = nb_bits-1; i >= 0; --i) { 
         shift_left_abit(remainder, cloud_key);
         bootsCOPY(remainder.sample, x + i, cloud_key);
-        FheUInt32 temp = sub_out_carry(remainder, b, cloud_key, carry);
+        FheUInt temp = sub_out_carry(remainder, b, cloud_key, carry);
         shift_left_abit(result, cloud_key);
         bootsNOT(not_carry, carry, cloud_key);
         bootsCOPY(result.sample, not_carry, cloud_key);
@@ -227,13 +235,13 @@ FheUInt32 div(
     return result;
 }
 
-FheUInt32 mod(
-    FheUInt32 &a, FheUInt32 &b, // avoid copying of object 
+FheUInt mod(
+    FheUInt &a, FheUInt &b, // avoid copying of object 
     const TFheGateBootstrappingCloudKeySet *cloud_key){
-    const int nb_bits = 32;
+    const int nb_bits = NB_BITS;
     const LweParams *in_out_params = cloud_key->params->in_out_params;
 
-    FheUInt32 result(in_out_params), remainder(in_out_params);
+    FheUInt result(in_out_params), remainder(in_out_params);
     LweSample *carry = new_LweSample(in_out_params), *not_carry = new_LweSample(in_out_params);
 
     // x = yq + r
@@ -249,7 +257,7 @@ FheUInt32 mod(
     for (int32_t i = nb_bits-1; i >= 0; --i) { 
         shift_left_abit(remainder, cloud_key);
         bootsCOPY(remainder.sample, x + i, cloud_key);
-        FheUInt32 temp = sub_out_carry(remainder, b, cloud_key, carry);
+        FheUInt temp = sub_out_carry(remainder, b, cloud_key, carry);
         shift_left_abit(result, cloud_key);
         bootsNOT(not_carry, carry, cloud_key);
         bootsCOPY(result.sample, not_carry, cloud_key);
@@ -263,20 +271,44 @@ FheUInt32 mod(
     return remainder;
 }
 
+#include <ctime>
+#include <sys/time.h>
+
+time_t now(){
+    struct timeval _now;
+    gettimeofday(&_now, 0);
+    return _now.tv_sec * 1000 + _now.tv_usec / 1000;
+}
+
 int main(){
     TFheGateBootstrappingParameterSet *parameneterSet = new_default_gate_bootstrapping_parameters(16);
     const LweParams* in_out_param = parameneterSet->in_out_params;
     TFheGateBootstrappingSecretKeySet *keySet = new_random_gate_bootstrapping_secret_keyset(parameneterSet);
     // cout << in_out_param->n;
     // client decrypt data with its own key
-    FheUInt32 
-            x = fromUInt32(7, keySet), 
-            y = fromUInt32(3, keySet);
-    // cout << "Start mul 2 encrypted number:" << endl;
-    auto marked = time(0);
-    // FheUInt32 x(in_out_param), y(in_out_param);
-    cout << "Start division" << endl;
-    auto z = mod(x, y, &keySet->cloud);
-    cout << toUInt32(z, keySet) << endl;
-    cout << "Time ellapsed:" << time(0)-marked << " second(s)";
+    FheUInt 
+            x = fromUInt(32, keySet), 
+            y = fromUInt(6, keySet);
+    time_t marker;
+    
+    FheUInt z(in_out_param);
+    marker = now();
+    z = add(x, y, &keySet->cloud);
+    cout << toUInt(x, keySet) << " + " << toUInt(y, keySet) << " = " << toUInt(z, keySet) << " in " << now() - marker << "ms" << endl;
+
+    marker = now();
+    z = sub(x, y, &keySet->cloud);
+    cout << toUInt(x, keySet) << " - " << toUInt(y, keySet) << " = " << toUInt(z, keySet) << " in " << now() - marker << "ms" << endl;
+
+    marker = now();
+    z = mul(x, y, &keySet->cloud);
+    cout << toUInt(x, keySet) << " * " << toUInt(y, keySet) << " = " << toUInt(z, keySet) << " in " << now() - marker << "ms" << endl;
+
+    marker = now();
+    z = div(x, y, &keySet->cloud);
+    cout << toUInt(x, keySet) << " / " << toUInt(y, keySet) << " = " << toUInt(z, keySet) << " in " << now() - marker << "ms" << endl;
+
+    marker = now();
+    z = mod(x, y, &keySet->cloud);
+    cout << toUInt(x, keySet) << " % " << toUInt(y, keySet) << " = " << toUInt(z, keySet) << " in " << now() - marker << "ms" << endl;
 }
