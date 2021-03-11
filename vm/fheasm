@@ -1,4 +1,0 @@
-mov a, 5
-mov b, 10
-add a, b
-out a

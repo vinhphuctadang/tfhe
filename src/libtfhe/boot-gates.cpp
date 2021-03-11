@@ -1,5 +1,5 @@
 #ifndef TFHE_TEST_ENVIRONMENT
-
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <random>
@@ -21,6 +21,14 @@ using namespace std;
 #endif
 
 
+// #include <ctime>
+// #include <sys/time.h>
+
+// time_t now(){
+//     struct timeval _now;
+//     gettimeofday(&_now, 0);
+//     return _now.tv_sec * 1000 + _now.tv_usec / 1000;
+// }
 //*//*****************************************
 // zones on the torus -> to see
 //*//*****************************************
@@ -117,14 +125,17 @@ bootsXOR(LweSample *result, const LweSample *ca, const LweSample *cb, const TFhe
     LweSample *temp_result = new_LweSample(in_out_params);
 
     //compute: (0,1/4) + 2*(ca + cb)
+    // time_t marked = now();
     static const Torus32 XorConst = modSwitchToTorus32(1, 4);
     lweNoiselessTrivial(temp_result, XorConst, in_out_params);
     lweAddMulTo(temp_result, 2, ca, in_out_params);
     lweAddMulTo(temp_result, 2, cb, in_out_params);
-
+    // cout << "Time consume of lwe SubMulTo: " << now() - marked << endl;
     //if the phase is positive, the result is 1/8
     //if the phase is positive, else the result is -1/8
+    // marked = now();
     tfhe_bootstrap_FFT(result, bk->bkFFT, MU, temp_result);
+    // cout << "Time consume of bootstrapFFT: " << now() - marked << endl;
 
     delete_LweSample(temp_result);
 }
@@ -143,15 +154,17 @@ bootsXNOR(LweSample *result, const LweSample *ca, const LweSample *cb, const TFh
     LweSample *temp_result = new_LweSample(in_out_params);
 
     //compute: (0,-1/4) + 2*(-ca-cb)
+    
     static const Torus32 XnorConst = modSwitchToTorus32(-1, 4);
     lweNoiselessTrivial(temp_result, XnorConst, in_out_params);
     lweSubMulTo(temp_result, 2, ca, in_out_params);
     lweSubMulTo(temp_result, 2, cb, in_out_params);
-
+    
     //if the phase is positive, the result is 1/8
     //if the phase is positive, else the result is -1/8
+    
     tfhe_bootstrap_FFT(result, bk->bkFFT, MU, temp_result);
-
+    
     delete_LweSample(temp_result);
 }
 
@@ -163,6 +176,7 @@ bootsXNOR(LweSample *result, const LweSample *ca, const LweSample *cb, const TFh
 */
 EXPORT void bootsNOT(LweSample *result, const LweSample *ca, const TFheGateBootstrappingCloudKeySet *bk) {
     const LweParams *in_out_params = bk->params->in_out_params;
+
     lweNegate(result, ca, in_out_params);
 }
 

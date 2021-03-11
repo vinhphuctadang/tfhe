@@ -1,4 +1,3 @@
-#include "tfhe/tfhe.h"
 #include <cstring>
 #include <iostream>
 #include <iomanip>

@@ -4,3 +4,4 @@ callgrind.*
 doc
 build
 run
+**/*.fhe
