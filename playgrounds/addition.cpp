@@ -56,10 +56,7 @@ int main(){
     LweSample* z = new_LweSample_array(2, in_out_param); // 2 bit
     LweSample* carry = new_LweSample_array(2, in_out_param); // 1 bit
     bootsSymEncrypt(carry, 0, secretKeySet);
-
-    // export_gate_bootstrapping_ciphertext_toFile(stdout, x, parameneterSet);
-    // export_gate_bootstrapping_ciphertext_toFile(stdout, y, parameneterSet);
-    // export_gate_bootstrapping_ciphertext_toFile(stdout, z, parameneterSet);
+    
     full_adder(z, x, y, 1, in_out_param, carry, &secretKeySet->cloud);
 
     for(int i = 0; i<2; ++i) {
