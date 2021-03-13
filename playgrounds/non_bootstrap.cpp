@@ -26,24 +26,38 @@ time_t now(){
 void nonbootsXOR(LweSample *result, const LweSample *ca, const LweSample *cb, const TFheGateBootstrappingCloudKeySet *bk) {
     // static const Torus32 MU = modSwitchToTorus32(1, 8);
     const LweParams *in_out_params = bk->params->in_out_params;
-
-    // LweSample *temp_result = new_LweSample(in_out_params);
+    LweSample *temp_result = new_LweSample(in_out_params);
     //compute: (0,1/4) + 2*(ca + cb)
     static const Torus32 XorConst = modSwitchToTorus32(1, 4);
-    lweNoiselessTrivial(result, XorConst, in_out_params);
-    lweAddMulTo(result, 2, ca, in_out_params);
-    lweAddMulTo(result, 2, cb, in_out_params);
+    lweNoiselessTrivial(temp_result, XorConst, in_out_params);
+    lweAddMulTo(temp_result, 2, ca, in_out_params);
+    lweAddMulTo(temp_result, 2, cb, in_out_params);
+    lweCopy(result, temp_result, in_out_params);
+}
+
+void nonbootsXOR3(LweSample *result, const LweSample *ca, const LweSample *cb, const LweSample *cc, const TFheGateBootstrappingCloudKeySet *bk) {
+    // static const Torus32 MU = modSwitchToTorus32(1, 8);
+    const LweParams *in_out_params = bk->params->in_out_params;
+    LweSample *temp_result = new_LweSample(in_out_params);
+    //compute: (0,1/4) + 2*(ca + cb)
+    static const Torus32 XorConst = modSwitchToTorus32(1, 4);
+    lweNoiselessTrivial(temp_result, XorConst, in_out_params);
+    lweAddMulTo(temp_result, 2, ca, in_out_params);
+    lweAddMulTo(temp_result, 2, cb, in_out_params);
+    lweAddMulTo(temp_result, 2, cc, in_out_params);
+    lweCopy(result, temp_result, in_out_params);
 }
 
 void nonbootsAND(LweSample *result, const LweSample *ca, const LweSample *cb, const TFheGateBootstrappingCloudKeySet *bk) {
-    
     const LweParams *in_out_params = bk->params->in_out_params;
     //compute: (0,-1/8) + ca + cb
     static const Torus32 AndConst = modSwitchToTorus32(-1, 8);
-    lweNoiselessTrivial(result, AndConst, in_out_params);
-    lweAddTo(result, ca, in_out_params);
-    lweAddTo(result, cb, in_out_params);
+    LweSample *temp_result = new_LweSample(in_out_params);
+    lweNoiselessTrivial(temp_result, AndConst, in_out_params);
+    lweAddTo(temp_result, ca, in_out_params);
+    lweAddTo(temp_result, cb, in_out_params);
     // delete_LweSample(temp_result);
+    lweCopy(result, temp_result, in_out_params);
 }
 
 void nonbootsOR(LweSample *result, const LweSample *ca, const LweSample *cb, const TFheGateBootstrappingCloudKeySet *bk) {
@@ -53,10 +67,11 @@ void nonbootsOR(LweSample *result, const LweSample *ca, const LweSample *cb, con
     //compute: (0,1/8) + ca + cb
     static const Torus32 OrConst = modSwitchToTorus32(1, 8);
     lweNoiselessTrivial(result, OrConst, in_out_params);
-    lweAddTo(result, ca, in_out_params);
-    lweAddTo(result, cb, in_out_params);
+    lweAddTo(temp_result, ca, in_out_params);
+    lweAddTo(temp_result, cb, in_out_params);
     // tfhe_bootstrap_woKS_FFT(result, bk->bkFFT, MU, temp_result);
     // delete_LweSample(temp_result);
+    lweCopy(result, temp_result, in_out_params);
 }
 
 
@@ -67,46 +82,85 @@ void nonbootsCONSTANT(LweSample *result, int32_t value, const TFheGateBootstrapp
     lweNoiselessTrivial(result, value ? MU : -MU, in_out_params);
 }
 
-void full_adder_optimized(LweSample *sum, 
+void full_adder_gate(
+    LweSample *sum, 
+    LweSample *carry, // in-out
     const LweSample *x, const LweSample *y, 
-    const int32_t nb_bits, const LweParams *in_out_params, const TFheGateBootstrappingCloudKeySet* cloud_key) {
+    const TFheGateBootstrappingCloudKeySet* cloud_key) {
+    
+    static const Torus32 AdderConst = modSwitchToTorus32(1, 8);
+    const LweParams *in_out_params = cloud_key->params->in_out_params;
     const LweParams *extracted_params = &cloud_key->params->tgsw_params->tlwe_params->extracted_lweparams;
-
-    LweSample *carry = new_LweSample_array(2, in_out_params); // 1 bit
-    LweSample *temp = new_LweSample_array(4, in_out_params);
-    LweSample *exported_carry = new_LweSample(in_out_params);
     LweSample *u = new_LweSample(extracted_params);
     LweSample *tmp = new_LweSample(extracted_params);
+    LweSample *temp = new_LweSample_array(3, in_out_params);
 
-    nonbootsCONSTANT(carry, 0, cloud_key);
+    nonbootsXOR3(sum, x, y, carry, cloud_key);
+    // nonbootsAND(temp + 1, x, y, cloud_key); // temp1 = xi AND yi
+    // nonbootsXOR(sum, sum, carry, cloud_key); // sum = temp XOR carry = (xi XOR yi) XOR carry
 
-    for (int32_t i = 0; i < nb_bits; ++i) {
+    tfhe_bootstrap_woKS_FFT(u, cloud_key->bkFFT, MU, sum);
+    // lweNoiselessTrivial(tmp, AdderConst, extracted_params);
+    // lweAddTo(tmp, u, extracted_params);
+    // Key switching
+    lweKeySwitch(sum, cloud_key->bkFFT->ks, u);
 
-        time_t marker = now();
-        //sumi = xi XOR yi XOR carry(i-1) 
-        nonbootsXOR(temp, x + i, y + i, cloud_key); // temp = xi XOR yi
-        nonbootsXOR(temp + 3, temp, carry, cloud_key);
-        tfhe_bootstrap_woKS_FFT(u, cloud_key->bkFFT, MU, temp + 3);
+    // lweNoiselessTrivial(tmp, AdderConst, extracted_params);
+    // nonbootsAND(carry, temp, carry, cloud_key); // carry = (xi XOR yi) and carry
+    // nonbootsOR(carry, carry, temp + 1, cloud_key);
+    // tfhe_bootstrap_woKS_FFT(u, cloud_key->bkFFT, MU, carry);
+    
+    // lweNoiselessTrivial(tmp, AdderConst, extracted_params);
+    // lweAddTo(tmp, u, extracted_params);
+    // lweKeySwitch(carry, cloud_key->bkFFT->ks, tmp);
 
-        // carry = (xi AND yi) XOR (carry(i-1) AND (xi XOR yi))
-        nonbootsAND(temp + 1, x + i, y + i, cloud_key); // temp1 = xi AND yi
-        nonbootsAND(temp + 2, carry, temp, cloud_key); // temp2 = carry AND temp
-        nonbootsXOR(carry + 1, temp + 1, temp + 2, cloud_key);
-        static const Torus32 AdderConst = modSwitchToTorus32(1, 8);
-        lweNoiselessTrivial(tmp, AdderConst, extracted_params);
-        lweAddTo(tmp, u, extracted_params);
-        // Key switching
-        lweKeySwitch(sum + i, cloud_key->bkFFT->ks, tmp);
-        // copy carry flag
-        lweCopy(carry, carry + 1, in_out_params);
-        cout << "1 bit calculation cosume: " << now() - marker << endl;
-    }
-    lweKeySwitch(exported_carry, cloud_key->bkFFT->ks, carry);
-    bootsCOPY(sum + nb_bits, carry, cloud_key);
-    delete_LweSample(exported_carry);
+    // carry is not keyswitched
+    // lweKeySwitch(sum, cloud_key->bkFFT->ks, u);
+    delete_LweSample(u);
+    delete_LweSample(tmp);
     delete_LweSample_array(3, temp);
-    delete_LweSample_array(2, carry);
 }
+
+// void full_adder_optimized(LweSample *sum, 
+//     const LweSample *x, const LweSample *y, 
+//     const int32_t nb_bits, const LweParams *in_out_params, const TFheGateBootstrappingCloudKeySet* cloud_key) {
+//     const LweParams *extracted_params = &cloud_key->params->tgsw_params->tlwe_params->extracted_lweparams;
+
+//     LweSample *carry = new_LweSample_array(2, in_out_params); // 1 bit
+//     LweSample *temp = new_LweSample_array(4, in_out_params);
+//     LweSample *exported_carry = new_LweSample(in_out_params);
+//     LweSample *u = new_LweSample(extracted_params);
+//     LweSample *tmp = new_LweSample(extracted_params);
+//     nonbootsCONSTANT(carry, 0, cloud_key);
+//     static const Torus32 AdderConst = modSwitchToTorus32(1, 8);
+
+//     for (int32_t i = 0; i < nb_bits; ++i) {
+
+//         time_t marker = now();
+//         //sumi = xi XOR yi XOR carry(i-1) 
+//         // nonbootsXOR(temp, x + i, y + i, cloud_key); // temp = xi XOR yi
+//         // // nonbootsXOR(temp + 3, temp, carry, cloud_key);
+//         // tfhe_bootstrap_woKS_FFT(u, cloud_key->bkFFT, MU, temp);
+
+//         // // carry = (xi AND yi) XOR (carry(i-1) AND (xi XOR yi))
+//         // nonbootsAND(temp + 1, x + i, y + i, cloud_key); // temp1 = xi AND yi
+//         // nonbootsAND(temp + 2, carry, temp, cloud_key); // temp2 = carry AND temp
+//         // nonbootsXOR(carry + 1, temp + 1, temp + 2, cloud_key);
+        
+//         // lweNoiselessTrivial(tmp, AdderConst, extracted_params);
+//         // lweAddTo(tmp, u, extracted_params);
+//         // // Key switching
+//         // lweKeySwitch(sum + i, cloud_key->bkFFT->ks, tmp);
+//         // // copy carry flag
+//         // lweCopy(carry, carry + 1, in_out_params);
+//         cout << "1 bit calculation cosume: " << now() - marker << endl;
+//     }
+//     lweKeySwitch(exported_carry, cloud_key->bkFFT->ks, carry);
+//     bootsCOPY(sum + nb_bits, carry, cloud_key);
+//     delete_LweSample(exported_carry);
+//     delete_LweSample_array(3, temp);
+//     delete_LweSample_array(2, carry);
+// }
 
 void full_adder(LweSample *sum, 
     const LweSample *x, const LweSample *y, 
@@ -143,33 +197,39 @@ int main(){
     TFheGateBootstrappingSecretKeySet* secretKeySet = new_random_gate_bootstrapping_secret_keyset(parameneterSet);
 
     // encrypt the boolean '1'
-    LweSample* x = new_LweSample_array(1, in_out_param); // 1 bit
+    LweSample* x = new_LweSample(in_out_param); // 1 bit
     bootsSymEncrypt(x, 1, secretKeySet);
     
     // encrypt the boolean '0'
-    LweSample* y = new_LweSample_array(1, in_out_param); // 1 bit
+    LweSample* y = new_LweSample(in_out_param); // 1 bit
     bootsSymEncrypt(y, 1, secretKeySet);
 
     cout << "Running: " << endl;
-
     cout << "Optimize with non-keyswitch:" << endl;
-    // add placeholder for result
-    LweSample* z = new_LweSample_array(2, in_out_param); // 2 bit
-    
-    full_adder_optimized(z, x, y, 1, in_out_param, &secretKeySet->cloud);
-    for(int i = 0; i<2; ++i) {
-        int decrypted_bit = bootsSymDecrypt(z+i, secretKeySet);
-        cout << decrypted_bit;
-    }
-    cout << endl << endl;
-    cout << "Keyswitch:" << endl;
-    full_adder(z, x, y, 1, in_out_param, &secretKeySet->cloud);
-    for(int i = 0; i<2; ++i) {
-        int decrypted_bit = bootsSymDecrypt(z+i, secretKeySet);
-        cout << decrypted_bit;
-    }
 
-    cout << endl;
+    // add placeholder for result
+    LweSample 
+        *z = new_LweSample(in_out_param), 
+        *carry = new_LweSample(in_out_param);
+
+    bootsCONSTANT(carry, 1, &secretKeySet->cloud);
+    full_adder_gate(z, carry, x, y, &secretKeySet->cloud);
+    int decrypted_bit = bootsSymDecrypt(z, secretKeySet);
+    cout << "Sum bit: " << decrypted_bit << endl;
+
+    // full_adder_optimized(z, x, y, 1, in_out_param, &secretKeySet->cloud);
+    // for(int i = 0; i<2; ++i) {
+    //     int decrypted_bit = bootsSymDecrypt(z+i, secretKeySet);
+    //     cout << decrypted_bit;
+    // }
+    // cout << endl << endl;
+    // cout << "Keyswitch:" << endl;
+    // full_adder(z, x, y, 1, in_out_param, &secretKeySet->cloud);
+    // for(int i = 0; i<2; ++i) {
+    //     int decrypted_bit = bootsSymDecrypt(z+i, secretKeySet);
+    //     cout << decrypted_bit;
+    // }
+
     delete_gate_bootstrapping_parameters(parameneterSet);
     delete_gate_bootstrapping_secret_keyset(secretKeySet);
 }
