@@ -89,8 +89,8 @@ temp_result: LweSample
     static const int32_t N = 1024;
     static const int32_t k = 1;
     static const int32_t n = 500;
-    static const int32_t bk_l = 2;
-    static const int32_t bk_Bgbit = 10;
+    > static const int32_t bk_l = 2;
+    > static const int32_t bk_Bgbit = 10;
     static const int32_t ks_basebit = 2;
     static const int32_t ks_length = 8;
     static const double ks_stdev = 2.44e-5; //standard deviation
@@ -146,3 +146,33 @@ TGswParams(int32_t l, int32_t Bgbit, const TLweParams *tlwe_params) :
     tgsw_params(tgsw_params)
 ```
 
+
+new_TGswParams(bk_l, bk_Bgbit, params_accum)
+
+
+static TFheGateBootstrappingParameterSet *default_80bit_gate_bootstrapping_parameters() {
+    // These are the historic parameter set provided in 2016,
+    // that were analyzed against lattice enumeration attacks
+    // Currently (in 2020), the security of these parameters is estimated to lambda = **80-bit security**
+    // (w.r.t bkz-sieve model, + hybrid attack model)
+    static const int32_t N = 1024;
+    static const int32_t k = 1;
+    static const int32_t n = 500;
+    static const int32_t bk_l = 2;
+    static const int32_t bk_Bgbit = 10;
+    static const int32_t ks_basebit = 2;
+    static const int32_t ks_length = 8;
+    static const double ks_stdev = 2.44e-5; //standard deviation
+    static const double bk_stdev = 7.18e-9; //standard deviation
+    static const double max_stdev = 0.012467; //max standard deviation for a 1/4 msg space
+
+    LweParams *params_in = new_LweParams(n, ks_stdev, max_stdev);
+    TLweParams *params_accum = new_TLweParams(N, k, bk_stdev, max_stdev);
+    TGswParams *params_bk = new_TGswParams(bk_l, bk_Bgbit, params_accum);
+
+    TfheGarbageCollector::register_param(params_in);
+    TfheGarbageCollector::register_param(params_accum);
+    TfheGarbageCollector::register_param(params_bk);
+
+    return new TFheGateBootstrappingParameterSet(ks_length, ks_basebit, params_in, params_bk);
+}
