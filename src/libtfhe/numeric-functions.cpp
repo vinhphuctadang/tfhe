@@ -3,8 +3,8 @@
 #include <random>
 #include <cassert>
 #include <limits.h>
-#include <tfhe_core.h>
-#include <numeric_functions.h>
+#include "tfhe_core.h"
+#include "numeric_functions.h"
 
 using namespace std;
 

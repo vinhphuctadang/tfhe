@@ -20,25 +20,25 @@ struct TLweParams {
 
     ~TLweParams();
 
-    // TLweParams(const TLweParams &) = delete;
+    TLweParams(const TLweParams &) = delete;
 
-    // void operator=(const TLweParams &) = delete;
+    void operator=(const TLweParams &) = delete;
 
 #endif
 };
 
 struct TLweKey {
-    const TLweParams params; ///< the parameters of the key
-    IntPolynomial key; ///< the key (i.e k binary polynomials)
+    const TLweParams *params; ///< the parameters of the key
+    IntPolynomial *key; ///< the key (i.e k binary polynomials)
 #ifdef __cplusplus
 
-    TLweKey(const TLweParams params);
+    TLweKey(const TLweParams *params);
 
     ~TLweKey();
 
-    // TLweKey(const TLweKey &) = delete;
+    TLweKey(const TLweKey &) = delete;
 
-    // void operator=(const TLweKey &) = delete;
+    void operator=(const TLweKey &) = delete;
 
 #endif
 };
@@ -51,13 +51,13 @@ struct TLweSample {
     const int32_t k;
 #ifdef __cplusplus
 
-    TLweSample(const TLweParams params);
+    TLweSample(const TLweParams *params);
 
     ~TLweSample();
 
-    // TLweSample(const TLweSample &) = delete;
+    TLweSample(const TLweSample &) = delete;
 
-    // void operator=(const TLweSample &) = delete;
+    void operator=(const TLweSample &) = delete;
 
 #endif
 };
@@ -69,7 +69,7 @@ struct TLweSampleFFT {
     const int32_t k; //required during the destructor call...
 #ifdef __cplusplus
 
-    TLweSampleFFT(const TLweParams params, LagrangeHalfCPolynomial *a, double current_variance);
+    TLweSampleFFT(const TLweParams *params, LagrangeHalfCPolynomial *a, double current_variance);
 
     ~TLweSampleFFT();
 

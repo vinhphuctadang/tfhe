@@ -9,13 +9,13 @@
 /** This structure represents an integer polynomial modulo X^N+1 */
 struct IntPolynomial {
    const int32_t N;
-   int32_t coefs[1024];
+   int32_t* coefs;
 
 #ifdef __cplusplus   
    IntPolynomial(const int32_t N);
    ~IntPolynomial();
-   // IntPolynomial(const IntPolynomial&) = delete; //forbidden 
-   // IntPolynomial* operator=(const IntPolynomial&) = delete; //forbidden
+   IntPolynomial(const IntPolynomial&) = delete; //forbidden 
+   IntPolynomial* operator=(const IntPolynomial&) = delete; //forbidden
 #endif
 };
 

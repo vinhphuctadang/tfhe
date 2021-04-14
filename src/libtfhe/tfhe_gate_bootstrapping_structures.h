@@ -16,9 +16,9 @@ struct TFheGateBootstrappingParameterSet {
     TFheGateBootstrappingParameterSet(const int32_t ks_t, const int32_t ks_basebit, const LweParams *const in_out_params,
                                       const TGswParams *const tgsw_params);
 
-    // TFheGateBootstrappingParameterSet(const TFheGateBootstrappingParameterSet &) = delete;
+    TFheGateBootstrappingParameterSet(const TFheGateBootstrappingParameterSet &) = delete;
 
-    // void operator=(const TFheGateBootstrappingParameterSet &)= delete;
+    void operator=(const TFheGateBootstrappingParameterSet &)= delete;
 
 #endif
 };
@@ -36,7 +36,7 @@ struct TFheGateBootstrappingCloudKeySet {
 
     TFheGateBootstrappingCloudKeySet(const TFheGateBootstrappingCloudKeySet &) = delete;
 
-    // void operator=(const TFheGateBootstrappingCloudKeySet &)= delete;
+    void operator=(const TFheGateBootstrappingCloudKeySet &)= delete;
 
 #endif
 };
@@ -57,7 +57,7 @@ struct TFheGateBootstrappingSecretKeySet {
 
     TFheGateBootstrappingSecretKeySet(const TFheGateBootstrappingSecretKeySet &) = delete;
 
-    // void operator=(const TFheGateBootstrappingSecretKeySet &)= delete;
+    void operator=(const TFheGateBootstrappingSecretKeySet &)= delete;
 
 #endif
 };

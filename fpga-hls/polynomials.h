@@ -23,13 +23,13 @@ struct IntPolynomial {
 /** This structure represents an torus polynomial modulo X^N+1 */
 struct TorusPolynomial {
    const int32_t N;
-   Torus32* coefsT;
+   Torus32 coefsT[1024];
 
 #ifdef __cplusplus   
    TorusPolynomial(const int32_t N);
    ~TorusPolynomial();
-   TorusPolynomial(const TorusPolynomial&) = delete; //forbidden 
-   TorusPolynomial* operator=(const TorusPolynomial&) = delete; //forbidden
+   // TorusPolynomial(const TorusPolynomial&) = delete; //forbidden 
+   // TorusPolynomial* operator=(const TorusPolynomial&) = delete; //forbidden
 #endif
 };
 
